@@ -1,74 +1,42 @@
-#include <cstdio>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "renderer.hpp"
 #include "shader.hpp"
-
-void APIENTRY ErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
-{
-    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-            type, severity, message);
-}
+#include "basicCube.hpp"
 
 int main(void)
 {
-    GLFWwindow *window;
+    Renderer renderer;
+    int success = renderer.RendererInit(640, 640, "Hello There!");
 
-    if (!glfwInit())
-        return -1;
-
-    window = glfwCreateWindow(640, 640, "Hello There!", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
-    {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-        glfwTerminate();
-        return -1;
-    }
+    if (success != 0)
+        return success;
 
     ShaderProgram basic("res/basic.shader");
     basic.use();
 
-    float positions[6] = {
-        -0.5f, -0.5f,
-        0.0f, 0.5f,
-        0.5f, -0.5f};
-
-    unsigned int indices[6] = {
-        0, 1, 2};
-
     unsigned int VertexBufferID;
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 144 * sizeof(float), verticesFlat, GL_STATIC_DRAW);
 
     unsigned int ElementBufferID;
     glGenBuffers(1, &ElementBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ElementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * sizeof(unsigned int), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36 * sizeof(unsigned int), cubeIndicesFlat, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
 
-    glDebugMessageCallback(ErrorCallback, NULL);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
 
-    while (!glfwWindowShouldClose(window))
+    while (renderer.IsRunning())
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        basic.use();
+        renderer.Update();
     }
 
-    glfwTerminate();
+    renderer.Shutdown();
+
     return 0;
 }

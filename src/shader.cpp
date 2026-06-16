@@ -1,52 +1,16 @@
 #include "shader.hpp"
-#include <string>
-#include <fstream>
+#include "assetManager.hpp"
+#include "GLFW/glfw3.h"
+#include <cmath>
 #include <iostream>
 
 ShaderProgram::ShaderProgram(const char *shaderFile)
 {
     // Load the code
-    std::string vertexCode;
-    std::string fragmentCode;
-    std::ifstream shaderFileObject(shaderFile);
+    std::pair<std::string, std::string> shaderSources = AssetManager::loadShader(shaderFile);
 
-    if (!shaderFileObject.is_open())
-    {
-        std::cerr << "Error: Could not open the file." << std::endl;
-        return;
-    }
-
-    std::string line;
-    std::getline(shaderFileObject, line);
-    while (!shaderFileObject.eof() && line.find("##shader") != std::string::npos)
-    {
-        if (line.find("##shader") != std::string::npos)
-        {
-            std::string shaderType = line.substr(9);
-            if (shaderType == "vertex")
-            {
-                while (std::getline(shaderFileObject, line) && line.find("##shader") == std::string::npos)
-                {
-                    vertexCode += line + "\n";
-                }
-            }
-            if (shaderType == "fragment")
-            {
-                while (std::getline(shaderFileObject, line) && line.find("##shader") == std::string::npos)
-                {
-                    fragmentCode += line + "\n";
-                }
-            }
-        }
-        else
-        {
-            std::cerr << "ERROR::SHADER::INVALID_SHADER_FILE_FORMAT" << std::endl;
-        }
-    }
-    shaderFileObject.close();
-
-    vShaderSource = vertexCode.c_str();
-    fShaderSource = fragmentCode.c_str();
+    vShaderSource = shaderSources.first.c_str();
+    fShaderSource = shaderSources.second.c_str();
 
     // Compile the code
     unsigned int vertexShader;
@@ -104,5 +68,40 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::use()
 {
+    float n = 0.1f;         // Near plane
+    float f = 100.0f;       // Far plane
+    float thetaFOV = 45.0f; // Field of view in degrees
+
+    float theta = (float)glfwGetTime() * 2;
+    float model[16] = {
+        cosf(theta), 0.0, sinf(theta), 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        -sinf(theta), 0.0, cosf(theta), 0.0,
+        0.0, 0.0, 0.0, 1.0};
+
+    float view[16] = {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, -1.0, -2.5, 1.0};
+
+    float projection[16] = {
+        tanf(thetaFOV * 3.14159f / 180.0f), 0.0, 0.0, 0.0,
+        0.0, tanf(thetaFOV * 3.14159f / 180.0f), 0.0, 0.0,
+        0.0, 0.0, (f + n) / (n - f), -1.0,
+        0.0, 0.0, 2 * f * n / (n - f), 0.0};
+
     glUseProgram(ID);
+
+    int u_model = glGetUniformLocation(ID, "u_model");
+    if (u_model != -1)
+        glUniformMatrix4fv(u_model, 1, GL_FALSE, &model[0]);
+
+    int u_view = glGetUniformLocation(ID, "u_view");
+    if (u_view != -1)
+        glUniformMatrix4fv(u_view, 1, GL_FALSE, &view[0]);
+
+    int u_projection = glGetUniformLocation(ID, "u_projection");
+    if (u_projection != -1)
+        glUniformMatrix4fv(u_projection, 1, GL_FALSE, &projection[0]);
 }
