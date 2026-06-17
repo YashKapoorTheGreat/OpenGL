@@ -1,15 +1,17 @@
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 class ShaderProgram
 {
 private:
-    unsigned int ID;
+    unsigned int ID = 0;
 
 public:
-    const char *vShaderSource;
-    const char *fShaderSource;
     ShaderProgram(const char *shaderFile);
     ~ShaderProgram();
 
-    void use();
+    void Bind();
+    void Unbind();
+    void setMVPUniforms(const glm::mat4 &projection, const glm::mat4 &view, const glm::mat4 &model);
 };
