@@ -18,31 +18,31 @@ void Camera::UpdateProjection()
     m_Projection = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
 }
 
-void Camera::setPosition(glm::vec3 position)
+void Camera::SetPosition(glm::vec3 position)
 {
     m_Position = position;
     UpdateView();
 }
 
-void Camera::setForward(glm::vec3 forward)
+void Camera::SetForward(glm::vec3 forward)
 {
     m_Forward = forward;
     UpdateView();
 }
 
-void Camera::setUp(glm::vec3 up)
+void Camera::SetUp(glm::vec3 up)
 {
     m_Up = up;
     UpdateView();
 }
 
-void Camera::setAspectRatio(float aspectRatio)
+void Camera::SetAspectRatio(float aspectRatio)
 {
     m_AspectRatio = aspectRatio;
     UpdateProjection();
 }
 
-void Camera::setFOV(float FOV)
+void Camera::SetFOV(float FOV)
 {
     m_FOV = FOV;
     UpdateProjection();

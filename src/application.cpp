@@ -1,9 +1,14 @@
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include "application.hpp"
+#include "game.hpp"
 #include "utils.hpp"
 #include "events.hpp"
 #include <chrono>
 #include <iostream>
 #include <bitset>
+#include <stb_image.h>
 
 static void APIENTRY ErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -16,6 +21,15 @@ static void APIENTRY ErrorCallback(GLenum source, GLenum type, GLuint id, GLenum
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn);
+
+void Application::ResizeCallback(GLFWwindow *window, int width, int height)
+{
+    Application *app = (Application *)glfwGetWindowUserPointer(window);
+    app->m_height = height;
+    app->m_width = width;
+    app->game->UpdateViewport(width, height);
+    glViewport(0, 0, width, height);
+}
 
 Application::Application(int width, int height, const char *title, int &errCode)
 {
@@ -58,11 +72,16 @@ Application::Application(int width, int height, const char *title, int &errCode)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
+    glfwSetWindowUserPointer(window, this);
+
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetFramebufferSizeCallback(window, ResizeCallback);
 
-    game = new Game();
+    stbi_set_flip_vertically_on_load(true);
+
+    game = new Game(this);
 
     errCode = 0;
 }
@@ -70,18 +89,9 @@ Application::Application(int width, int height, const char *title, int &errCode)
 void Application::Run()
 {
     long long deltaMs = 0;
-    while (IsRunning())
+    while (!glfwWindowShouldClose(window))
     {
         auto start = std::chrono::steady_clock::now();
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        if (m_height != height || m_width != width)
-        {
-            m_height = height;
-            m_width = width;
-            game->UpdateViewport(width, height);
-            glViewport(0, 0, m_width, m_height);
-        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         game->Update(((float)deltaMs) * 0.000001f);
         glfwSwapBuffers(window);
@@ -89,8 +99,18 @@ void Application::Run()
         auto end = std::chrono::steady_clock::now();
         auto delta = end - start;
         deltaMs = std::chrono::duration_cast<std::chrono::microseconds>(delta).count();
-        // std::cout << "Delta time: " << deltaMs << " FPS: " << 1000000.0f / (float)deltaMs << std::endl;
+        std::cout << "Delta time: " << deltaMs << " FPS: " << 1000000.0f / (float)deltaMs << std::endl;
     }
+}
+
+void Application::EnableCursor()
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
+void Application::DisableCursor()
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 Application::~Application()

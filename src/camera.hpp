@@ -10,29 +10,29 @@ public:
     const glm::mat4 &GetProjection() const { return m_Projection; }
     const glm::mat4 &GetView() const { return m_View; }
 
-    void setPosition(glm::vec3 position);
-    void setForward(glm::vec3 forward);
-    void setUp(glm::vec3 up);
-    void setAspectRatio(float aspectRatio);
-    void setFOV(float FOV);
+    void SetPosition(glm::vec3 position);
+    void SetForward(glm::vec3 forward);
+    void SetUp(glm::vec3 up);
+    void SetAspectRatio(float aspectRatio);
+    void SetFOV(float FOV);
 
-    inline glm::vec3 getPosition()
+    inline glm::vec3 GetPosition()
     {
         return m_Position;
     }
-    inline glm::vec3 getForward()
+    inline glm::vec3 GetForward()
     {
         return m_Forward;
     }
-    inline glm::vec3 getUp()
+    inline glm::vec3 GetUp()
     {
         return m_Up;
     }
-    inline float getAspectRatio()
+    inline float GetAspectRatio()
     {
         return m_AspectRatio;
     }
-    inline float getFOV()
+    inline float GetFOV()
     {
         return m_FOV;
     }

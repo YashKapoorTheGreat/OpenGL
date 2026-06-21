@@ -1,37 +1,35 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #include "game.hpp"
 #include "events.hpp"
+#include "application.hpp"
 #include "basicCube.hpp"
-#include <iostream>
 
-Game::Game() : basic("res/basic.shader")
+Game::Game(Application *app) :
+    application(app),
+    m_basic("res/shaders/basic.shader"),
+    m_texture("res/images/container.jpg", 0, GL_RGB, GL_RGB),
+    m_bag("res/models/bag/backpack.obj"),
+    m_cubeFlat(verticesFlat, cubeIndicesFlat, { m_texture })
 {
     float n = 0.1f;             // Near plane
     float f = 100.0f;           // Far plane
     float thetaFOV = 45.0f * 2; // Field of view in degrees
 
-    camera = Camera(thetaFOV, (float)640 / (float)640, n, f);
-    basic.Bind();
+    m_camera = Camera(thetaFOV, (float)640 / (float)640, n, f);
 
-    unsigned int VertexBufferID;
-    glGenBuffers(1, &VertexBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, 144 * sizeof(float), verticesFlat, GL_STATIC_DRAW);
+    m_lastMouseX = mouseX;
+    m_lastMouseY = mouseY;
 
-    unsigned int ElementBufferID;
-    glGenBuffers(1, &ElementBufferID);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ElementBufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36 * sizeof(unsigned int), cubeIndicesFlat, GL_STATIC_DRAW);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
+    m_basic.Bind();
+    m_basic.SetUniform1i("u_texture", 0);
+    m_basic.SetUniform1i("u_skybox", 1);
 }
 
 Game::~Game()
@@ -40,57 +38,67 @@ Game::~Game()
 
 void Game::Update(float delta)
 {
-    moveCamera(delta);
-    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() * 2, glm::vec3(0.0f, 1.0f, 0.0f));
+    MoveCamera(delta);
 
-    basic.Bind();
-    basic.setMVPUniforms(camera.GetProjection(), camera.GetView(), modelMatrix);
+    glm::mat4 modelMatrix = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() * 0.5f, glm::vec3(1.0f, 0.0f, 0.0f));
 
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    m_basic.Bind();
+    m_texture.Bind();
+    m_basic.SetUniformMatrix4("u_model", modelMatrix);
+    m_basic.SetUniformMatrix4("u_view", m_camera.GetView());
+    m_basic.SetUniformMatrix4("u_projection", m_camera.GetProjection());
+    m_cubeFlat.Draw(m_basic);
+
+
+    //m_texture.Unbind();
+    m_basic.SetUniformMatrix4("u_model", glm::translate(glm::mat4(1.0f), glm::vec3(3,0,0)));
+    m_bag.Draw(m_basic);
 }
 
-void Game::moveCamera(float delta)
+void Game::MoveCamera(float delta)
 {
-    glm::vec3 camPos = camera.getPosition();
+    glm::vec3 camPos = m_camera.GetPosition();
     if (keyPressed & W_PRESSED)
-        camPos += camera.getForward() * camSpeed * delta;
+        camPos += m_camera.GetForward() * m_camSpeed * delta;
     if (keyPressed & S_PRESSED)
-        camPos -= camera.getForward() * camSpeed * delta;
+        camPos -= m_camera.GetForward() * m_camSpeed * delta;
     if (keyPressed & A_PRESSED)
-        camPos += glm::cross(camera.getUp(), camera.getForward()) * camSpeed * delta;
+        camPos += glm::cross(m_camera.GetUp(), m_camera.GetForward()) * m_camSpeed * delta;
     if (keyPressed & D_PRESSED)
-        camPos -= glm::cross(camera.getUp(), camera.getForward()) * camSpeed * delta;
+        camPos -= glm::cross(m_camera.GetUp(), m_camera.GetForward()) * m_camSpeed * delta;
     if (keyPressed & Q_PRESSED)
-        camPos += camera.getUp() * camSpeed * delta;
+        camPos += m_camera.GetUp() * m_camSpeed * delta;
     if (keyPressed & E_PRESSED)
-        camPos -= camera.getUp() * camSpeed * delta;
-    camera.setPosition(camPos);
+        camPos -= m_camera.GetUp() * m_camSpeed * delta;
+    m_camera.SetPosition(camPos);
 
     if (keyPressed & LEFT_MOUSE_PRESSED)
     {
-        int dX = mouseX - lastMouseX;
-        int dY = mouseY - lastMouseY;
+        application->DisableCursor();
+        int dX = mouseX - m_lastMouseX;
+        int dY = mouseY - m_lastMouseY;
 
-        yaw += dX * mouseSensitivity * delta;
-        pitch -= dY * mouseSensitivity * delta;
+        m_yaw += dX * m_mouseSensitivity * delta;
+        m_pitch -= dY * m_mouseSensitivity * delta;
 
-        if (pitch > 89.0f)
-            pitch = 89.0f;
-        if (pitch < -89.0f)
-            pitch = -89.0f;
+        if (m_pitch > 89.0f)
+            m_pitch = 89.0f;
+        if (m_pitch < -89.0f)
+            m_pitch = -89.0f;
     }
+    else
+        application->EnableCursor();
 
-    glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    camera.setForward(glm::normalize(front));
+    glm::vec3 front = { cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch)),
+                        sin(glm::radians(m_pitch)),
+                        sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch))};
+    m_camera.SetForward(front);
 
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
+    m_lastMouseX = mouseX;
+    m_lastMouseY = mouseY;
 }
 
 void Game::UpdateViewport(int width, int height)
 {
-    camera.setAspectRatio((float)width / (float)height);
+    m_camera.SetAspectRatio((float)width / (float)height);
 }

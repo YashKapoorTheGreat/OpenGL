@@ -1,7 +1,5 @@
 #pragma once
 
-#include <GL/glew.h>
-
 #if defined(_MSC_VER)
 // For MSVC (Visual Studio)
 #define DEBUG_BREAK() __debugbreak()
