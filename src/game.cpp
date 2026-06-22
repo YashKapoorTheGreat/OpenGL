@@ -8,9 +8,9 @@
 
 Game::Game(Application *app) :
     application(app),
-    m_basic("res/shaders/basic.shader"),
-    m_texture("res/images/container.jpg", 0, GL_RGB, GL_RGB),
-    m_bag("res/models/bag/backpack.obj"),
+    m_basic(SOURCE_DIR "/res/shaders/basic.shader"),
+    m_texture(SOURCE_DIR "/res/images/container.jpg", 0, GL_RGB, GL_RGB),
+    m_bag(SOURCE_DIR "/res/models/bag/backpack.obj"),
     m_cubeFlat(verticesFlat, cubeIndicesFlat, { m_texture })
 {
     float n = 0.1f;             // Near plane
